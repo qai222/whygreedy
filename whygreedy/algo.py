@@ -30,7 +30,7 @@ def check_solution(solution: list[float], oxides: list[Compound], original: Comp
             if element == "O":
                 continue
             sum_oxides[element] += v * x
-    return all(is_close_to_zero(sum_oxides[e] - original.normalized_formula[e]) for e in elements)
+    return all(sum_oxides[e] < original.normalized_formula[e] + 1e-5 for e in elements)
 
 
 def calculate_ranking_parameter(oxide: Compound, original: Compound) -> float:
