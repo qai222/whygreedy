@@ -92,7 +92,7 @@ def find_comp(stable_oxides, compound_unit_cell, compound_formE, condition, n):
                     ratio * oxide['unit_cell_formula'][element] / oxide['nsites'])
 
             # inequality because of != 0 problem
-            if abs(normalised_unit_cell[element]) < 0.0001:
+            if abs(normalised_unit_cell[element]) < 1e-7:  # was 1e-4
                 used_up_elements.append(element)
 
         result.append(oxide)
