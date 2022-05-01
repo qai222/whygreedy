@@ -1,17 +1,15 @@
 import os.path
-import pandas as pd
-import seaborn as sns
+from collections import OrderedDict
 
-import numpy as np
 import tqdm
 
-from whygreedy import json_load, Compound, find_lp, find_greedy, find_greedy_old
+from whygreedy import json_load, Compound
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 mpdata = os.path.join(this_dir, "../data/mp.json.gz")
 
 
-def load_mp():
+def load_mp() -> list[dict]:
     clean_data = []
     data = json_load(mpdata)
     for compound in data:
@@ -25,9 +23,9 @@ def load_mp():
     return clean_data
 
 
-def find_stable_phases(all_compounds, criteria=50):
+def find_stable_compounds(all_compounds, criteria=50):
     stable_phase = []
-    # find all compounds with e_above_hull within 0.05 of 0
+    # find all compounds with e_above_hull within 0.05 eV
     for compound in all_compounds:
         if abs(compound['e_above_hull']) < criteria / 1000:
             stable_phase.append(compound)
@@ -43,105 +41,83 @@ def mpdata_to_compound(d: dict):
     return Compound.from_dict(data)
 
 
-def find_pairs(compounds: list[Compound]):
-    chemical_system_to_oxides = dict()
+def find_oxide_pairs_from_compounds(compounds: list[Compound]):
+    oxides = []
+    non_oxides = []
+    chemsys_to_oxide_list = dict()
     for c in compounds:
         if c.is_oxide:
-            key = frozenset(c.elements_exclude_oxygen)
+            oxides.append(c)
+            if len(c.elements_exclude_oxygen) == 0:
+                continue  # ignore pure oxygen
             try:
-                chemical_system_to_oxides[key].append(c)
+                chemsys_to_oxide_list[frozenset(c.elements_exclude_oxygen)].append(c)
             except KeyError:
-                chemical_system_to_oxides[key] = [c]
+                chemsys_to_oxide_list[frozenset(c.elements_exclude_oxygen)] = [c, ]
+        else:
+            non_oxides.append(c)
+
     pairs = []
-    for c in compounds:
-        if not c.is_oxide:
-            key = frozenset(c.elements)
-            try:
-                oxides = chemical_system_to_oxides[key]
-            except KeyError:
-                continue
-            pairs.append((c, oxides))
+    for non_oxide in tqdm.tqdm(non_oxides):
+        oxide_list = []
+        non_oxide_element_set = set(non_oxide.elements)
+        for element_fset in chemsys_to_oxide_list:
+            if non_oxide_element_set.issuperset(element_fset):
+                oxide_list += chemsys_to_oxide_list[element_fset]
+        if len(oxide_list) == 0:
+            continue
+        pairs.append((non_oxide, oxide_list))
     return pairs
 
 
-def set_small_to_zeros(a: list[float], eps=1e-5):
-    a = np.array(a)
-    a[np.abs(a) < eps] = 0
-    return a
-
-
-def load_mp_pairs():
-    mp_data = load_mp()
-    compounds = find_stable_phases(mp_data, 50)
+def load_mp_competing_pairs():
+    """
+    mpid -> chemsys -> all possible subset chemsys -> all mpid
+    """
+    compounds = load_mp()
     compounds = [mpdata_to_compound(c) for c in compounds]
-    pairs = find_pairs(compounds)
+
+    mpid_to_compound = {c.mpid: c for c in compounds}
+
+    chemsys_to_mpids = OrderedDict()
+    mpid_to_chemsys = OrderedDict()
+    print("create mpid2chemsys...")
+    for c in tqdm.tqdm(compounds):
+        try:
+            chemsys_to_mpids[frozenset(c.elements)].append(c.mpid)
+        except KeyError:
+            chemsys_to_mpids[frozenset(c.elements)] = [c.mpid, ]
+        mpid_to_chemsys[c.mpid] = frozenset(c.elements)
+
+    chemsys_sets = [cs for cs in chemsys_to_mpids]
+
+    chemsys_to_subsets = OrderedDict()
+    print("create chemsys2subsets...")
+    for i in tqdm.tqdm(range(len(chemsys_sets))):
+        chemsys_i = chemsys_sets[i]
+        subsets = []
+        for j in range(len(chemsys_sets)):
+            chemsys_j = chemsys_sets[j]
+            if chemsys_i.issuperset(chemsys_j):
+                subsets.append(chemsys_j)
+        chemsys_to_subsets[chemsys_i] = subsets
+
+    pairs = []
+    print("create pairs...")
+    for c in tqdm.tqdm(compounds):
+        c_chemsys = mpid_to_chemsys[c.mpid]
+        competing_phases = []
+        for subset_chemsys in chemsys_to_subsets[c_chemsys]:
+            competing_phases += chemsys_to_mpids[subset_chemsys]
+        pairs.append((c, [mpid_to_compound[cpid] for cpid in competing_phases if cpid != c.mpid]))
     return pairs
 
 
-def compare_greedy_exact(pairs, greedy_type="old"):
-    dh_diff = []
-    quali_diff = []
-    solutions_old = []
-    solutions_exact = []
-    for original, oxides in tqdm.tqdm(pairs):
-
-        sol_old_min, dh_old_min = None, np.inf
-        for i in range(len(oxides)):
-            if greedy_type == "old":
-                sol_old, dh_old = find_greedy_old(oxides, original, first_choice=i)
-            elif greedy_type == "new":
-                sol_old, dh_old = find_greedy(oxides, original, first_choice=i, real_greedy=False)
-            elif greedy_type == "real":
-                sol_old, dh_old = find_greedy(oxides, original, first_choice=i, real_greedy=True)
-            else:
-                raise NotImplementedError
-            if dh_old < dh_old_min:
-                dh_old_min = dh_old
-                sol_old_min = sol_old
-
-        sol_exact, dh_exact = find_lp(oxides, original)
-        dh_diff.append(dh_exact - dh_old_min)
-
-        sol_old_min = set_small_to_zeros(sol_old_min)
-        sol_exact = set_small_to_zeros(sol_exact)
-        quali_diff.append(not np.allclose(sol_old_min.astype(bool), sol_exact.astype(bool)))
-
-        solutions_old.append(sol_old_min)
-        solutions_exact.append(sol_exact)
-    dh_diff = set_small_to_zeros(dh_diff)
-    return dh_diff, np.array(quali_diff), solutions_old, solutions_exact
-
-
-def hist_compare(dh_diff, quali_diff, dh_diff_threshold=0.0):
-    df = pd.DataFrame()
-
-    mask = np.abs(dh_diff) >= dh_diff_threshold
-
-    df["Delta H difference (eV/atom)"] = dh_diff[mask]
-    df["qualitative difference"] = quali_diff[mask]
-    histplot = sns.histplot(df, x="Delta H difference (eV/atom)", hue="qualitative difference", hue_order=[True, False], multiple="stack", binwidth=0.1)
-    fig = histplot.get_figure()
-    return fig
-
-
-if __name__ == '__main__':
-    pairs = load_mp_pairs()
-    dh_diff, quali_diff, _, _ = compare_greedy_exact(pairs, greedy_type="old")
-
-    fig = hist_compare(dh_diff, quali_diff, 0)
-    fig.savefig("compare_above0.00.png", dpi=300)
-    fig.clf()
-
-    fig = hist_compare(dh_diff, quali_diff, 0.05)
-    fig.savefig("compare_above0.05.png", dpi=300)
-    fig.clf()
-
-    print("total pairs:", len(dh_diff))
-    mask = np.abs(dh_diff) > 0.05
-    print("dh diff above 0.05:", len(dh_diff[mask]))
-    print("qualitative diff:", sum(quali_diff))
-    """
-    total pairs: 9238
-    dh diff above 0.05: 1212
-    qualitative diff: 1371
-    """
+def load_mp_oxide_pairs():
+    mp_data = load_mp()
+    compounds = find_stable_compounds(mp_data, 50)
+    print("stable compounds:", len(compounds))
+    compounds = [mpdata_to_compound(c) for c in compounds]
+    pairs = find_oxide_pairs_from_compounds(compounds)
+    print("# of pairs loaded:", len(pairs))
+    return pairs
