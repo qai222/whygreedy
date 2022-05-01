@@ -3,6 +3,7 @@ from itertools import combinations
 from typing import Tuple
 
 import numpy as np
+from monty.json import MSONable
 
 
 def normalize_stoi(formula_dictionary: dict[str, int]) -> dict[str, float]:
@@ -14,7 +15,7 @@ def is_close_to_zero(f: float, eps=1e-5):
     return abs(f) < eps
 
 
-class Compound:
+class Compound(MSONable):
 
     def __init__(
             self, normalized_formula: dict[str, float], formation_energy_per_atom: float,
@@ -71,14 +72,26 @@ def is_oxidation_pair(oxide: Compound, original: Compound):
     return set(original.elements).issuperset(set(oxide.elements_exclude_oxygen))
 
 
-def compound_subtract(oxide: Compound, original: Compound) -> Tuple[float, Compound]:
+def is_competing_pair(cp: Compound, original: Compound):
+    return set(original.elements).issuperset(set(cp.elements))
+
+
+def compound_subtract(oxide: Compound, original: Compound, for_oxide=True) -> Tuple[float, Compound]:
     # note this will update the original
-    assert is_oxidation_pair(oxide, original)
-    ratios = [original.normalized_formula[x] / oxide.normalized_formula[x] for x in oxide.elements_exclude_oxygen]
-    ratio = min(ratios)
-    for e in oxide.elements_exclude_oxygen:
-        original.normalized_formula[e] -= ratio * oxide.normalized_formula[e]
-    return ratio, original
+    if for_oxide:
+        assert is_oxidation_pair(oxide, original)
+        ratios = [original.normalized_formula[x] / oxide.normalized_formula[x] for x in oxide.elements_exclude_oxygen]
+        ratio = min(ratios)
+        for e in oxide.elements_exclude_oxygen:
+            original.normalized_formula[e] -= ratio * oxide.normalized_formula[e]
+        return ratio, original
+    else:
+        assert is_competing_pair(oxide, original)
+        ratios = [original.normalized_formula[x] / oxide.normalized_formula[x] for x in oxide.elements]
+        ratio = min(ratios)
+        for e in oxide.elements:
+            original.normalized_formula[e] -= ratio * oxide.normalized_formula[e]
+        return ratio, original
 
 
 def gen_random_data(elements: list[str], num_oxi_per_chemical_system: int, seed: int) -> Tuple[
