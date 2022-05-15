@@ -36,7 +36,7 @@ def pkl_dump(o, fn: file_type) -> None:
     with open(fn, "wb") as f:
         pickle.dump(o, f)
     ts2 = time.perf_counter()
-    print("dumped in: {:.4f} s".format(ts2 - ts1))
+    print("dumped {} in: {:.4f} s".format(os.path.basename(fn), ts2 - ts1))
 
 
 def pkl_load(fn: file_type):
@@ -44,7 +44,7 @@ def pkl_load(fn: file_type):
     with open(fn, "rb") as f:
         d = pickle.load(f)
     ts2 = time.perf_counter()
-    print("loaded in: {:.4f} s".format(ts2 - ts1))
+    print("loaded {} in: {:.4f} s".format(os.path.basename(fn), ts2 - ts1))
     return d
 
 

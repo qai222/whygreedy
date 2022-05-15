@@ -76,7 +76,7 @@ def is_competing_pair(cp: Compound, original: Compound):
     return set(original.elements).issuperset(set(cp.elements))
 
 
-def compound_subtract(oxide: Compound, original: Compound, for_oxide=True) -> Tuple[float, Compound]:
+def compound_subtract(oxide: Compound, original: Compound, for_oxide: bool) -> Tuple[float, Compound]:
     # note this will update the original
     if for_oxide:
         assert is_oxidation_pair(oxide, original)

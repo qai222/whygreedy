@@ -12,9 +12,13 @@ mpdata = os.path.join(this_dir, "../data/mp.json.gz")
 def load_mp() -> list[dict]:
     clean_data = []
     data = json_load(mpdata)
+    neclude = 0
     for compound in data:
         if None not in compound.values():
             clean_data.append(compound)
+        else:
+            neclude += 1
+    print("exclude data as None in required fields: {}".format(neclude))
     discrepancy = 0
     for compound in clean_data:
         if compound['nsites'] != sum(compound['unit_cell_formula'].values()):
@@ -57,6 +61,7 @@ def find_oxide_pairs_from_compounds(compounds: list[Compound]):
         else:
             non_oxides.append(c)
 
+    compound_of_no_oxides = []
     pairs = []
     for non_oxide in tqdm.tqdm(non_oxides):
         oxide_list = []
@@ -65,12 +70,16 @@ def find_oxide_pairs_from_compounds(compounds: list[Compound]):
             if non_oxide_element_set.issuperset(element_fset):
                 oxide_list += chemsys_to_oxide_list[element_fset]
         if len(oxide_list) == 0:
+            compound_of_no_oxides.append(non_oxide)
             continue
         pairs.append((non_oxide, oxide_list))
+    print("# of compound that has no oxides", len(compound_of_no_oxides))
+    for c in compound_of_no_oxides:
+        print(c)
     return pairs
 
 
-def load_mp_competing_pairs():
+def load_mp_decomposition_pairs():
     """
     mpid -> chemsys -> all possible subset chemsys -> all mpid
     """
@@ -113,7 +122,7 @@ def load_mp_competing_pairs():
     return pairs
 
 
-def load_mp_oxide_pairs():
+def load_mp_oxidation_pairs():
     mp_data = load_mp()
     compounds = find_stable_compounds(mp_data, 50)
     print("stable compounds:", len(compounds))
