@@ -224,10 +224,14 @@ def find_lp(reactant: Compound, products: list[Compound], ) -> Tuple[list[float]
             return [v.x for v in m.getVars()], m.objVal - reactant.formation_energy_per_atom
 
 
-def find_greedy_old_first_choices(reactant: Compound, products: list[Compound], for_oxide: bool):
+def find_greedy_old_first_choices(reactant: Compound, products: list[Compound], for_oxide: bool, firstk: int = None):
     dh_min = np.inf
     sol_min = None
-    for i in range(len(products)):
+    if firstk == None:
+        first_choices = range(len(products))
+    else:
+        first_choices = range(min([len(products), firstk]))
+    for i in first_choices:
         sol, dh = find_greedy_old(reactant, products, first_choice=i, for_oxide=for_oxide)
         # check elemental conservation
         assert check_solution(sol, products, reactant)
@@ -239,11 +243,15 @@ def find_greedy_old_first_choices(reactant: Compound, products: list[Compound], 
 
 def find_greedy_first_choices(
         reactant: Compound, products: list[Compound],
-        diligent_greedy: bool, for_oxide: bool,
+        diligent_greedy: bool, for_oxide: bool, firstk: int = None,
 ):
     dh_min = np.inf
     sol_min = None
-    for i in range(len(products)):
+    if firstk == None:
+        first_choices = range(len(products))
+    else:
+        first_choices = range(min([len(products), firstk]))
+    for i in first_choices:
         sol, dh = find_greedy(reactant, products, first_choice=i, diligent_greedy=diligent_greedy, for_oxide=for_oxide)
         # check elemental conservation
         assert check_solution(sol, products, reactant)
