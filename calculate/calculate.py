@@ -20,7 +20,11 @@ def get_kwargs():
     return kwargs
 
 
-def compute(method: str, records_pkl: file_type, pairs_pkl: file_type, reaction_type: str, parallel: bool):
+def compute(
+        method: str, records_pkl: file_type,
+        pairs_pkl: file_type, firstk: int or None,
+        reaction_type: str, parallel: bool
+):
     if not file_exists(pairs_pkl):
         raise FileNotFoundError("pairs file not found!")
     logging.info("loading pairs file: {}".format(pairs_pkl))
@@ -49,9 +53,11 @@ def compute(method: str, records_pkl: file_type, pairs_pkl: file_type, reaction_
 
     if method == "lazy":
         cal_function = find_greedy_old_first_choices
+        cal_function_kwargs["firstk"] = firstk
     elif method == "diligent":
         cal_function = find_greedy_first_choices
         cal_function_kwargs["diligent_greedy"] = True
+        cal_function_kwargs["firstk"] = firstk
     elif method == "lp":
         cal_function = find_lp
         cal_function_kwargs = {}  # this does not take any kwarg
@@ -78,15 +84,18 @@ def compute(method: str, records_pkl: file_type, pairs_pkl: file_type, reaction_
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compute reaction enthalpies.')
-    parser.add_argument('--records_pkl', dest='records_pkl', metavar='records_pkl', type=str, nargs=1,
+    parser.add_argument('--records_pkl', dest='records_pkl', metavar='records_pkl', type=str, nargs='?',
                         help='pkl filename for resulting records', default="mp_decomp_records_lp.pkl")
-    parser.add_argument('--pairs_pkl', dest='pairs_pkl', metavar='pairs_pkl', type=str, nargs=1,
+    parser.add_argument('--pairs_pkl', dest='pairs_pkl', metavar='pairs_pkl', type=str, nargs='?',
                         help='existing pkl file for `pairs` describing reactions', default="mp_decomp_pairs.pkl")
-    parser.add_argument('--reaction_type', dest='reaction_type', metavar='reaction_type', type=str, nargs=1,
+    parser.add_argument('--reaction_type', dest='reaction_type', metavar='reaction_type', type=str, nargs='?',
                         help='oxidation, decomposition', default='decomposition')
-    parser.add_argument('--method', dest='method', type=str, nargs=1,
+    parser.add_argument('--method', dest='method', type=str, nargs='?',
                         help='method for minimizing delta H', default='lp',
-                        choices=['lazy', 'greedy', 'lp', 'pmg'])
+                        choices=['lazy', 'diligent', 'lp', 'pmg'])
+    parser.add_argument('--firstk', dest='firstk', type=int, nargs='?',
+                        help='how many different first choices to try in a greedy algorithm, default all choices',
+                        default=None, )
     parser.add_argument('--parallel', action='store_true')
 
     args = parser.parse_args()
@@ -95,6 +104,7 @@ if __name__ == '__main__':
         method=args.method,
         records_pkl=args.records_pkl,
         pairs_pkl=args.pairs_pkl,
+        firstk=args.firstk,
         reaction_type=args.reaction_type,
         parallel=args.parallel,
     )
