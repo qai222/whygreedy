@@ -7,11 +7,11 @@ investigated by determining the most favored oxidation reaction (lowest reaction
 This is done using a greedy heuristic algorithm.
 
 With two notebooks in this repository, we show that:
-1. [part1.ipynb](part1.ipynb): The original implementation, 
+1. [greedy_versions.ipynb](greedy_versions.ipynb): The original implementation, 
 kindly provided by Twyman et al. 
 through [zenodo](https://zenodo.org/record/5110202#.YlJgpsjMJyg), 
 is a "lazy" version of the greedy algorithm as described in their manuscript.
-2. [part2.ipynb](part2.ipynb) The environmental stability problem can be solved exactly using linear programming, 
+2. [whygreedy.ipynb](whygreedy.ipynb) The environmental stability problem can be solved exactly using linear programming, 
 which gives solutions always better than or equivalent to the approximations by greedy algorithms.
 
 ## Usage
