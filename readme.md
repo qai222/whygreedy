@@ -20,7 +20,15 @@ To reproduce the notebooks, please follow these instructions:
 1. Clone this repository and add the root folder to `$PYTHONPATH$`
 2. Create a virtual environment and install dependencies: `pip install -r requirements.txt`
 3. Extract the content of [data/data.7z](data/data.7z) to the [data/](data/) folder. 
-   1. latest `7z` can be downloaded [here](https://www.7-zip.org/download.html)
-   2. The `*.pkl` files in the extracted content are not necessary for running the notebooks, 
-      they are included to save computation time.
+   - latest `7z` can be downloaded [here](https://www.7-zip.org/download.html)
 4. Start a Jupyter server and run the notebooks.
+
+### precomputed results
+The `*.pkl` files in the extracted content are precomputed results
+to save computation time in notebooks. To reproduce them:
+1. download materials project as `mp.json.gz` using `pymatgen` as described in [downloader.py](data/downloader.py)
+2. extract reactions from `mp.json.gz` using [pairs.py](calculate/pairs.py)
+3. calculate reaction enthalpies with [calculate.py](calculate/calculate.py), 
+commands can be found in [calculate.sh](calculate/calculate.sh), and results will be saved as `*_records_*.pkl`.
+4. [combine.py](calculate/combine.py) combines `*_records_*.pkl` to `mp_oxidation_records.pkl` and
+`mp_decomposition_records.pkl` used in notebooks.
