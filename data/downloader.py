@@ -3,7 +3,7 @@ from pymatgen.ext.matproj import MPRester
 from whygreedy.utils import json_dump
 
 if __name__ == '__main__':
-    mat_api_key = '***REMOVED***'
+    mat_api_key = "YOUR MP API KEY"
 
     mpr = MPRester(mat_api_key)
 
