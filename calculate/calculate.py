@@ -5,7 +5,7 @@ import os
 import time
 
 from whygreedy import pkl_load, pkl_dump
-from whygreedy.algo import find_greedy_first_choices, find_greedy_old_first_choices, find_lp, find_pmgehull
+from whygreedy.algo import find_greedy_first_choices, find_greedy_old_first_choices, find_lp
 from whygreedy.calculator import Calculator
 from whygreedy.utils import file_type, file_exists
 
@@ -60,9 +60,6 @@ def compute(
         cal_function_kwargs["firstk"] = firstk
     elif method == "lp":
         cal_function = find_lp
-        cal_function_kwargs = {}  # this does not take any kwarg
-    elif method == "pmg":
-        cal_function = find_pmgehull
         cal_function_kwargs = {}  # this does not take any kwarg
     else:
         raise ValueError("method is: {}".format(method))
