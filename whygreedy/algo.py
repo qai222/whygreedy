@@ -4,9 +4,6 @@ from typing import Tuple
 import gurobipy as gp
 import numpy as np
 from gurobipy import GRB
-from pymatgen.analysis.phase_diagram import PhaseDiagram
-from pymatgen.core.composition import Composition
-from pymatgen.entries.computed_entries import ComputedEntry
 
 from whygreedy.Twyman2022ChemMat import find_comp
 from whygreedy.schema import Compound, is_close_to_zero, compound_subtract
@@ -259,26 +256,3 @@ def find_greedy_first_choices(
             dh_min = dh
             sol_min = sol
     return sol_min, dh_min
-
-
-def find_pmgehull(
-        reactant: Compound, products: list[Compound],
-):
-    c_e = ComputedEntry(Composition(reactant.normalized_formula), reactant.formation_energy_per_atom,
-                        entry_id=reactant.mpid)
-    cp_es = []
-    for cp in products:
-        cp_es.append(ComputedEntry(Composition(cp.normalized_formula), cp.formation_energy_per_atom, entry_id=cp.mpid))
-    pdEntries = [c_e, ] + cp_es
-    pd = PhaseDiagram(pdEntries)
-    decomp, ehull = pd.get_decomp_and_e_above_hull(c_e)
-
-    sol = [0.0, ] * len(products)
-    dh = ehull
-    product_ids = [p.mpid for p in products]
-    for k, v in decomp.items():
-        try:
-            sol[product_ids.index(k.entry_id)] = v
-        except ValueError:
-            assert len(decomp) == 1
-    return sol, dh
