@@ -1,4 +1,4 @@
-numpy==1.23.3
+numpy<=1.23.3
 seaborn==0.12.0
 monty==2022.9.9
 gurobipy==9.5.2
