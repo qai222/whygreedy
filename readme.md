@@ -1,6 +1,6 @@
 # Linear programming for environmental stability of crystals
 
-**NOTE**: This branch is for the Comment submitted to *Chemistry of Materials*. 
+**NOTE**: This branch is for the Comment published on *Chemistry of Materials* (doi: [10.1021/acs.chemmater.2c02434](https://pubs.acs.org/doi/full/10.1021/acs.chemmater.2c02434)). 
 For code behind [the paper on ChemiRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/629135424d8b597d2ea14f76),
 see the [ChemRxiv branch]().
 
